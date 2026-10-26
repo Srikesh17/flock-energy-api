@@ -1,0 +1,351 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Flock Energy — Urja Meter Ops REST API",
+    "version": "1.0.0",
+    "description": "A clean, modern REST API proxy layer wrapping the legacy Urja Meter Ops portal. Exposes normalized JSON smart meter listings, telemetry consumption histories, distribution network hierarchies, and bulk exports.",
+    "contact": {
+      "name": "Engineering Operations",
+      "email": "operator@urja.local"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Authenticate with Urja portal",
+        "description": "Explicitly authenticates with the legacy portal and confirms session state. Session cookies are automatically maintained by the service.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "operator@urja.local" },
+                  "password": { "type": "string", "example": "urja-ops-2026" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Successfully authenticated with Urja portal" },
+                    "user": { "type": "string", "example": "operator@urja.local" },
+                    "authenticatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters": {
+      "get": {
+        "summary": "Search & list smart meters",
+        "description": "Retrieve paginated smart meters with optional text search and attribute filters.",
+        "parameters": [
+          { "name": "q", "in": "query", "description": "Search query matching meter ID or serial number", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "description": "Page number (default: 1)", "schema": { "type": "integer", "default": 1 } },
+          { "name": "status", "in": "query", "description": "Filter by installation status (e.g., Active, Decommissioned)", "schema": { "type": "string" } },
+          { "name": "phase", "in": "query", "description": "Filter by phase type (e.g., single, three)", "schema": { "type": "string" } },
+          { "name": "make", "in": "query", "description": "Filter by meter manufacturer (e.g., HPL, Genus, Schneider)", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of smart meters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer", "example": 403 },
+                    "page": { "type": "integer", "example": 1 },
+                    "count": { "type": "integer", "example": 20 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/MeterSummary" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters/{id}": {
+      "get": {
+        "summary": "Get meter details",
+        "description": "Retrieve detailed metadata for a specific meter, including nameplate specifications, installation status, electrical hierarchy path, and geographic coordinates.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Unique meter ID (e.g. J100000)", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed meter profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeterDetail" }
+              }
+            }
+          },
+          "404": {
+            "description": "Meter not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters/{id}/consumption": {
+      "get": {
+        "summary": "Get meter consumption telemetry",
+        "description": "Retrieve 30-minute interval timeseries energy readings (kWh, kVAh, and voltage) for a smart meter.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Meter ID", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Limit the number of readings returned", "schema": { "type": "integer" } },
+          { "name": "sort", "in": "query", "description": "Sort order: asc (oldest first) or desc (latest first)", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "asc" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Timeseries energy telemetry readings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meterId": { "type": "string", "example": "J100000" },
+                    "totalReadings": { "type": "integer", "example": 337 },
+                    "returnedReadings": { "type": "integer", "example": 337 },
+                    "sort": { "type": "string", "example": "asc" },
+                    "readings": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ConsumptionReading" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transformers": {
+      "get": {
+        "summary": "List distribution transformers",
+        "description": "Retrieve distribution transformers with capacity ratings and feeder relationships.",
+        "parameters": [
+          { "name": "page", "in": "query", "description": "Page number", "schema": { "type": "integer", "default": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of transformers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer", "example": 40 },
+                    "page": { "type": "integer", "example": 1 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Transformer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hierarchy": {
+      "get": {
+        "summary": "Get full network hierarchy",
+        "description": "Reconstructs and returns the complete electrical distribution tree: Zone -> Circle -> Division -> Subdivision -> Substation -> Feeder -> DT -> Meters.",
+        "responses": {
+          "200": {
+            "description": "Hierarchical electrical distribution tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalMeters": { "type": "integer", "example": 403 },
+                    "hierarchy": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/export": {
+      "get": {
+        "summary": "Bulk export all meters",
+        "description": "Fetches the complete dataset of all 403 smart meters with full metadata, hierarchy paths, and geo coordinates via the signed HMAC export protocol.",
+        "responses": {
+          "200": {
+            "description": "Complete meters dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer", "example": 403 },
+                    "exportedAt": { "type": "string", "format": "date-time" },
+                    "meters": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/MeterExportItem" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stats": {
+      "get": {
+        "summary": "System statistics & overview",
+        "description": "Aggregated metrics across all smart meters, transformers, and manufacturer makes.",
+        "responses": {
+          "200": {
+            "description": "System statistics summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalMeters": { "type": "integer", "example": 403 },
+                    "totalTransformers": { "type": "integer", "example": 40 },
+                    "statusBreakdown": { "type": "object", "example": { "Active": 320, "Decommissioned": 83 } },
+                    "makeBreakdown": { "type": "object" },
+                    "phaseBreakdown": { "type": "object" },
+                    "generatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MeterSummary": {
+        "type": "object",
+        "properties": {
+          "meterId": { "type": "string", "example": "J100000" },
+          "serialNumber": { "type": "string", "example": "SE33962" },
+          "make": { "type": "string", "example": "HPL" },
+          "phaseType": { "type": "string", "example": "single" },
+          "installationStatus": { "type": "string", "example": "Decommissioned" },
+          "dtCode": { "type": "string", "example": "DT-001" }
+        }
+      },
+      "MeterDetail": {
+        "type": "object",
+        "properties": {
+          "meterId": { "type": "string", "example": "J100000" },
+          "serialNumber": { "type": "string", "example": "SE33962" },
+          "make": { "type": "string", "example": "HPL" },
+          "phaseType": { "type": "string", "example": "single" },
+          "installationStatus": { "type": "string", "example": "Decommissioned" },
+          "installationType": { "type": "string", "example": "Whole Current" },
+          "hierarchy": {
+            "type": "object",
+            "properties": {
+              "zone": { "type": "string", "example": "Jaipur Zone 1 (Z-01)" },
+              "circle": { "type": "string", "example": "Circle 1 (C-01)" },
+              "division": { "type": "string", "example": "Division 1 (D-01)" },
+              "subdivision": { "type": "string", "example": "Subdivision 1 (SD-01)" },
+              "substation": { "type": "string", "example": "Substation 1 (SS-01)" },
+              "feeder": { "type": "string", "example": "Feeder 1 (F-001)" },
+              "dt": { "type": "string", "example": "Malviya Nagar DT 1 (DT-001)" }
+            }
+          },
+          "hierarchyBreadcrumbs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "coordinates": {
+            "type": "object",
+            "properties": {
+              "latitude": { "type": "number", "example": 26.938961 },
+              "longitude": { "type": "number", "example": 75.830957 }
+            }
+          }
+        }
+      },
+      "ConsumptionReading": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "example": "23/06/2026 23:30" },
+          "isoTimestamp": { "type": "string", "format": "date-time", "example": "2026-06-23T23:30:00.000Z" },
+          "kwh": { "type": "number", "example": 48438.74 },
+          "kvah": { "type": "number", "example": 52313.84 },
+          "voltagePhaseR": { "type": "number", "example": 226 }
+        }
+      },
+      "Transformer": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "DT-001" },
+          "name": { "type": "string", "example": "Malviya Nagar DT 1" },
+          "feederCode": { "type": "string", "example": "F-001" },
+          "capacityKva": { "type": "number", "example": 100 }
+        }
+      },
+      "MeterExportItem": {
+        "type": "object",
+        "properties": {
+          "meterId": { "type": "string", "example": "J100000" },
+          "serialNumber": { "type": "string", "example": "SE33962" },
+          "make": { "type": "string", "example": "HPL" },
+          "phaseType": { "type": "string", "example": "single" },
+          "installationStatus": { "type": "string", "example": "Decommissioned" },
+          "installationType": { "type": "string", "example": "Whole Current" },
+          "build": { "type": "string", "example": "legacy" },
+          "dtCode": { "type": "string", "example": "DT-001" },
+          "hierarchy": { "type": "object" },
+          "coordinates": {
+            "type": "object",
+            "properties": {
+              "latitude": { "type": "number" },
+              "longitude": { "type": "number" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "Not Found" },
+          "message": { "type": "string", "example": "Meter not found" }
+        }
+      }
+    }
+  }
+}

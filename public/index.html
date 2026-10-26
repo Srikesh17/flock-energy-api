@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flock Energy — Urja Grid Explorer & API</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-900 shadow">
+          <i class="fa-solid fa-bolt text-lg"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight">Flock Energy</span>
+          <span class="text-xs text-slate-400 block -mt-1">Urja Meter Ops Explorer</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-2">
+        <button id="tab-meters" class="nav-tab active px-3 py-2 rounded-md text-sm font-medium transition-colors">
+          <i class="fa-solid fa-gauge-high mr-1.5"></i> Meters
+        </button>
+        <button id="tab-hierarchy" class="nav-tab px-3 py-2 rounded-md text-sm font-medium transition-colors text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-sitemap mr-1.5"></i> Network Hierarchy
+        </button>
+        <button id="tab-transformers" class="nav-tab px-3 py-2 rounded-md text-sm font-medium transition-colors text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-network-wired mr-1.5"></i> Transformers
+        </button>
+        <a href="/docs" target="_blank" class="px-3 py-2 rounded-md text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors flex items-center">
+          <i class="fa-solid fa-book mr-1.5"></i> API Docs <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i>
+        </a>
+      </nav>
+
+      <!-- Portal Status Badge -->
+      <div class="hidden md:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-300">Urja Portal: <strong class="text-white">Connected</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- KPI Metric Summary Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Meters</p>
+          <p id="kpi-total-meters" class="text-2xl font-bold text-slate-900 mt-1">--</p>
+        </div>
+        <div class="h-12 w-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-gauge"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Meters</p>
+          <p id="kpi-active-meters" class="text-2xl font-bold text-emerald-600 mt-1">--</p>
+        </div>
+        <div class="h-12 w-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Decommissioned</p>
+          <p id="kpi-decom-meters" class="text-2xl font-bold text-amber-600 mt-1">--</p>
+        </div>
+        <div class="h-12 w-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Distribution Transformers</p>
+          <p id="kpi-total-dts" class="text-2xl font-bold text-purple-600 mt-1">--</p>
+        </div>
+        <div class="h-12 w-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-bolt-lightning"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 1: METERS EXPLORER                         -->
+    <!-- ============================================== -->
+    <section id="view-meters" class="tab-view block space-y-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Smart Meters Directory</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Click any meter row to inspect full telemetry, location, and consumption curves</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-all" class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+              <i class="fa-solid fa-cloud-arrow-down mr-2"></i> Export All (HMAC Bulk)
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 py-4">
+          <div class="sm:col-span-6 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+            <input id="input-search" type="text" placeholder="Search by Meter ID (e.g. J100000) or Serial..." 
+              class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent" />
+          </div>
+          <div class="sm:col-span-3">
+            <select id="select-status" class="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 bg-white">
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Decommissioned">Decommissioned</option>
+            </select>
+          </div>
+          <div class="sm:col-span-3">
+            <select id="select-phase" class="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 bg-white">
+              <option value="">All Phases</option>
+              <option value="single">Single Phase</option>
+              <option value="three">Three Phase</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Meters Table -->
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <tr>
+                <th class="px-5 py-3">Meter ID</th>
+                <th class="px-5 py-3">Serial No</th>
+                <th class="px-5 py-3">Manufacturer</th>
+                <th class="px-5 py-3">Phase</th>
+                <th class="px-5 py-3">Installation Status</th>
+                <th class="px-5 py-3">DT Code</th>
+                <th class="px-5 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="meters-table-body" class="divide-y divide-slate-100 bg-white">
+              <tr>
+                <td colspan="7" class="px-5 py-12 text-center text-slate-400">
+                  <i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading meters data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="flex items-center justify-between pt-5 text-sm">
+          <span id="pagination-info" class="text-slate-500">Showing page 1</span>
+          <div class="flex items-center space-x-2">
+            <button id="btn-prev-page" disabled class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-chevron-left mr-1 text-xs"></i> Previous
+            </button>
+            <span id="pagination-current" class="px-3 py-1.5 font-medium text-slate-800">Page 1</span>
+            <button id="btn-next-page" class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              Next <i class="fa-solid fa-chevron-right ml-1 text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: NETWORK HIERARCHY TREE                  -->
+    <!-- ============================================== -->
+    <section id="view-hierarchy" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="pb-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Electrical Distribution Network Hierarchy</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Explore the grid hierarchy down from Zone to Circle, Division, Feeder, and Transformer</p>
+          </div>
+          <button id="btn-expand-all" class="px-3 py-1.5 text-xs font-medium border border-slate-300 rounded-md bg-white hover:bg-slate-50">
+            <i class="fa-solid fa-arrows-up-down mr-1"></i> Expand / Collapse All
+          </button>
+        </div>
+
+        <div id="hierarchy-container" class="mt-6 space-y-3 font-mono text-sm">
+          <div class="text-center py-12 text-slate-400">
+            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Reconstructing electrical grid topology...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: DISTRIBUTION TRANSFORMERS               -->
+    <!-- ============================================== -->
+    <section id="view-transformers" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="pb-6 border-b border-slate-100">
+          <h2 class="text-xl font-bold text-slate-900">Distribution Transformers (DTs)</h2>
+          <p class="text-sm text-slate-500 mt-0.5">Transformer assets, assigned electrical feeder codes, and rated kVA capacities</p>
+        </div>
+
+        <div id="transformers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          <div class="col-span-full text-center py-12 text-slate-400">
+            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading transformer assets...
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- METER DETAIL MODAL DRAWER                      -->
+  <!-- ============================================== -->
+  <div id="meter-modal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" id="modal-backdrop"></div>
+
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-slate-200">
+        
+        <!-- Modal Header -->
+        <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
+          <div class="flex items-center space-x-3">
+            <span class="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-bolt"></i>
+            </span>
+            <div>
+              <h3 class="text-lg font-bold leading-6" id="modal-meter-title">Meter Details</h3>
+              <p class="text-xs text-slate-400" id="modal-meter-subtitle">Smart Meter Specification & Telemetry</p>
+            </div>
+          </div>
+          <button id="modal-close" class="text-slate-400 hover:text-white transition-colors text-xl">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+
+          <!-- Breadcrumb Hierarchy Trail -->
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Electrical Hierarchy Trail</p>
+            <div id="modal-breadcrumbs" class="flex flex-wrap items-center gap-1.5 text-xs text-slate-700">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Nameplate & Location Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <h4 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3">
+                <i class="fa-solid fa-id-card mr-1.5 text-slate-400"></i> Nameplate Specs
+              </h4>
+              <dl class="divide-y divide-slate-100 text-xs" id="modal-nameplate">
+                <!-- Rendered via JS -->
+              </dl>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+              <div>
+                <h4 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3">
+                  <i class="fa-solid fa-location-dot mr-1.5 text-rose-500"></i> Geographic Location
+                </h4>
+                <div id="modal-geo" class="text-xs space-y-2 text-slate-600">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+              <div id="modal-geo-link" class="pt-4"></div>
+            </div>
+          </div>
+
+          <!-- Consumption Telemetry Chart -->
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">
+                  <i class="fa-solid fa-chart-line mr-1.5 text-blue-600"></i> Consumption Telemetry Curves
+                </h4>
+                <p class="text-xs text-slate-500">Dual-axis Active Energy (kWh) and Phase Voltage (V)</p>
+              </div>
+              <div class="flex items-center space-x-2 text-xs">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Active kWh</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Voltage V(R)</span>
+              </div>
+            </div>
+
+            <!-- Stats Ribbon -->
+            <div class="grid grid-cols-3 gap-3 my-3 text-center bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
+              <div>
+                <span class="text-slate-400 block">Total Readings</span>
+                <strong id="chart-total-readings" class="text-slate-800 font-semibold">--</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Avg Voltage</span>
+                <strong id="chart-avg-voltage" class="text-slate-800 font-semibold">--</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Energy Range</span>
+                <strong id="chart-energy-range" class="text-slate-800 font-semibold">--</strong>
+              </div>
+            </div>
+
+            <!-- Chart Canvas Container -->
+            <div class="h-64 relative w-full">
+              <canvas id="consumptionChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="bg-slate-50 px-6 py-3 flex justify-between items-center border-t border-slate-200 text-xs">
+          <span class="text-slate-500">Live data fetched & normalized from Urja Meter Ops</span>
+          <button id="modal-footer-close" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p>© 2026 Flock Energy — Urja Meter Ops API Service</p>
+      <div class="flex space-x-4">
+        <a href="/docs" class="text-slate-600 hover:text-slate-900 font-medium">Interactive API Docs</a>
+        <span>•</span>
+        <a href="/openapi.json" target="_blank" class="text-slate-600 hover:text-slate-900 font-medium">OpenAPI 3.0 Spec</a>
+        <span>•</span>
+        <a href="/health" target="_blank" class="text-slate-600 hover:text-slate-900 font-medium">Service Health</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

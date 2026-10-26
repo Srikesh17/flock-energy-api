@@ -1,0 +1,35 @@
+/* Custom styling enhancements for Urja Grid Explorer */
+.nav-tab.active {
+  background-color: rgb(30 41 59);
+  color: #fff;
+  border-bottom: 2px solid rgb(16 185 129);
+}
+
+.tree-node {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.tree-node::before {
+  content: '';
+  position: absolute;
+  top: 0.75rem;
+  left: 0.25rem;
+  width: 0.75rem;
+  height: 1px;
+  background-color: rgb(203 213 225);
+}
+
+.tree-node::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0.25rem;
+  width: 1px;
+  background-color: rgb(203 213 225);
+}
+
+.tree-node:last-child::after {
+  height: 0.75rem;
+}
