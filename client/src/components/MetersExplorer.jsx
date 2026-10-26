@@ -27,12 +27,12 @@ export default function MetersExplorer({ onSelectMeter }) {
         status: s,
         phase: ph,
       });
-      const res = await fetch(`/api/v1/meters?${params.toString()}`);
+      const res = await fetch(`/meters?${params.toString()}`);
       const data = await res.json();
       setMeters(data.data || []);
       setTotal(data.total || 0);
     } catch (err) {
-      console.error('Failed to fetch meters:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,6 @@ export default function MetersExplorer({ onSelectMeter }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-      {/* Header & Export */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Smart Meters Directory</h2>
@@ -83,7 +82,6 @@ export default function MetersExplorer({ onSelectMeter }) {
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 py-2">
         <div className="sm:col-span-6 relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -130,7 +128,6 @@ export default function MetersExplorer({ onSelectMeter }) {
         </div>
       </div>
 
-      {/* Meters Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
@@ -205,7 +202,6 @@ export default function MetersExplorer({ onSelectMeter }) {
         </table>
       </div>
 
-      {/* Pagination */}
       <div className="flex items-center justify-between pt-4 text-sm">
         <span className="text-slate-500">
           Showing {meters.length > 0 ? (page - 1) * 20 + 1 : 0}–{Math.min(page * 20, total)} of {total} meters

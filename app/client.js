@@ -19,7 +19,6 @@ class UrjaPortalClient {
     this.isAuthenticated = false;
     this.loginPromise = null;
 
-    // Axios client wrapped with tough-cookie jar support
     this.http = wrapper(
       axios.create({
         jar: this.cookieJar,
@@ -33,10 +32,8 @@ class UrjaPortalClient {
       })
     );
 
-    // Response interceptor to catch session expiration and re-authenticate
     this.http.interceptors.response.use(
       (response) => {
-        // If SvelteKit redirects to login page or indicates login needed
         if (typeof response.data === 'string' && response.data.includes('Urja Meter Ops — Sign in') && !response.config.url.includes('/login')) {
           const err = new Error('Session expired');
           err.isAuthError = true;
@@ -62,9 +59,6 @@ class UrjaPortalClient {
     );
   }
 
-  /**
-   * Log in to the Urja portal and establish a session cookie
-   */
   async login(username = null, password = null) {
     if (this.loginPromise) return this.loginPromise;
 
@@ -88,7 +82,6 @@ class UrjaPortalClient {
           validateStatus: (status) => status === 200 || status === 303 || status === 302,
         });
 
-        // Portal returns { type: 'redirect', status: 303, location: '/meters' }
         if (response.status === 200 && response.data && response.data.type === 'redirect') {
           this.isAuthenticated = true;
           return { success: true, user: email, location: response.data.location };
@@ -108,18 +101,12 @@ class UrjaPortalClient {
     return this.loginPromise;
   }
 
-  /**
-   * Ensure the client has an active authenticated session
-   */
   async ensureAuthenticated() {
     if (!this.isAuthenticated) {
       await this.login();
     }
   }
 
-  /**
-   * Search meters list with pagination and search query
-   */
   async searchMeters(query = '', page = 1) {
     await this.ensureAuthenticated();
     const url = `${this.baseUrl}/portal/meters/search?q=${encodeURIComponent(query)}&page=${page}`;
@@ -134,10 +121,6 @@ class UrjaPortalClient {
     };
   }
 
-  /**
-   * Get detailed meter information (nameplate, location, hierarchy)
-   * Fetches HTML page from /meters/:id and parses with Cheerio, plus geo endpoint
-   */
   async getMeterDetails(meterId) {
     await this.ensureAuthenticated();
 
@@ -159,7 +142,6 @@ class UrjaPortalClient {
     const html = pageRes.value.data;
     const $ = cheerio.load(html);
 
-    // Extract hierarchy breadcrumbs from nav
     const hierarchyTokens = [];
     $('nav.flex.flex-wrap.gap-1 span').each((i, el) => {
       const text = $(el).text().trim();
@@ -168,7 +150,6 @@ class UrjaPortalClient {
       }
     });
 
-    // Map breadcrumbs to hierarchy structure
     const hierarchyKeys = ['zone', 'circle', 'division', 'subdivision', 'substation', 'feeder', 'dt'];
     const hierarchy = {};
     hierarchyTokens.forEach((token, idx) => {
@@ -177,7 +158,6 @@ class UrjaPortalClient {
       }
     });
 
-    // Extract nameplate specifications from dl / dt / dd
     const nameplate = {};
     $('dl.divide-y.divide-slate-100 > div').each((i, el) => {
       const label = $(el).find('dt').text().trim();
@@ -187,7 +167,6 @@ class UrjaPortalClient {
       }
     });
 
-    // Geo coordinates
     let coordinates = null;
     if (geoRes.status === 'fulfilled' && geoRes.value.data?.data) {
       const geo = geoRes.value.data.data;
@@ -210,9 +189,6 @@ class UrjaPortalClient {
     });
   }
 
-  /**
-   * Get consumption history (timeseries readings) for a meter
-   */
   async getMeterConsumption(meterId) {
     await this.ensureAuthenticated();
     const url = `${this.baseUrl}/portal/meters/${meterId}/energy`;
@@ -228,9 +204,6 @@ class UrjaPortalClient {
     };
   }
 
-  /**
-   * Get distribution transformers list
-   */
   async getTransformers(page = 1) {
     await this.ensureAuthenticated();
     const url = `${this.baseUrl}/portal/dts?page=${page}`;
@@ -244,20 +217,15 @@ class UrjaPortalClient {
     };
   }
 
-  /**
-   * Bulk export all meters using the HMAC-SHA256 authenticated export endpoint
-   */
   async exportAllMeters() {
     await this.ensureAuthenticated();
 
-    // 1. Fetch signing secret
     const keysRes = await this.http.get(`${this.baseUrl}/portal/keys`);
     const secret = keysRes.data?.data?.signingSecret;
     if (!secret) {
       throw new Error('Failed to retrieve portal export signing secret');
     }
 
-    // 2. Generate HMAC signature
     const timestamp = String(Math.floor(Date.now() / 1000));
     const method = 'GET';
     const path = '/portal/export';
@@ -265,7 +233,6 @@ class UrjaPortalClient {
     const message = [method, path, query, timestamp].join('\n');
     const signature = crypto.createHmac('sha256', secret).update(message).digest('hex');
 
-    // 3. Request bulk export
     const exportRes = await this.http.get(`${this.baseUrl}/portal/export?${query}`, {
       headers: {
         'x-timestamp': timestamp,
@@ -294,14 +261,10 @@ class UrjaPortalClient {
     };
   }
 
-  /**
-   * Reconstruct full electrical distribution network hierarchy
-   */
   async getHierarchy() {
     const exportResult = await this.exportAllMeters();
     const meters = exportResult.meters;
 
-    // Build hierarchy tree: Zone -> Circle -> Division -> Subdivision -> Substation -> Feeder -> DT -> Meters
     const hierarchyTree = {};
 
     for (const meter of meters) {

@@ -10,7 +10,7 @@ export default function TransformersGrid() {
     fetch('/api/v1/transformers?page=1')
       .then((r) => r.json())
       .then((data) => setTransformers(data.data || []))
-      .catch((err) => console.error('Failed to load transformers:', err))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,7 +51,7 @@ export default function TransformersGrid() {
               <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-slate-400 block">Feeder Code</span>
-                  <strong className="font-mono text-slate-700">{dt.feederCode}</strong>
+                  <strong className="font-mono text-slate-700">${dt.feederCode}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Rated Capacity</span>

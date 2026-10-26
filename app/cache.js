@@ -1,7 +1,3 @@
-/**
- * In-memory TTL cache to minimize load on the legacy Urja portal
- * and deliver sub-millisecond API response times.
- */
 class MemoryCache {
   constructor(defaultTtlSeconds = 300) {
     this.defaultTtl = defaultTtlSeconds * 1000;

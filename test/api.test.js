@@ -51,6 +51,34 @@ describe('Flock Energy — Urja Meter Ops API Test Suite', () => {
     assert.equal(data.user, 'operator@urja.local');
   });
 
+  test('GET /meters directly returns paginated meters list (top-level routing)', async () => {
+    const res = await fetch(`${baseUrl}/meters?page=1`);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.total > 0);
+    assert.equal(data.page, 1);
+    assert.ok(Array.isArray(data.data));
+    assert.ok(data.data.length > 0);
+  });
+
+  test('GET /meters/:id directly returns meter profile (top-level routing)', async () => {
+    const res = await fetch(`${baseUrl}/meters/J100000`);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.meterId, 'J100000');
+    assert.equal(data.serialNumber, 'SE33962');
+    assert.equal(data.make, 'HPL');
+  });
+
+  test('GET /meters/:id/consumption directly returns readings (top-level routing)', async () => {
+    const res = await fetch(`${baseUrl}/meters/J100000/consumption?limit=5`);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.meterId, 'J100000');
+    assert.equal(data.returnedReadings, 5);
+    assert.ok(Array.isArray(data.readings));
+  });
+
   test('GET /api/v1/meters returns paginated meters list', async () => {
     const res = await fetch(`${baseUrl}/api/v1/meters?page=1`);
     assert.equal(res.status, 200);

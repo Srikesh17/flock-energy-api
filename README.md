@@ -4,7 +4,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539?logo=openapi-initiative&logoColor=white)](./openapi.json)
-[![Tests](https://img.shields.io/badge/Tests-12%20Passed-emerald)](./test/api.test.js)
+[![Tests](https://img.shields.io/badge/Tests-15%20Passed-emerald)](./test/api.test.js)
 
 > A clean, production-grade REST API service, client adapter layer, and interactive **React.js** web dashboard built over the legacy **Urja Meter Ops** portal (`https://urja-ops.flockenergy.tech`).
 
@@ -164,7 +164,7 @@ The server will start on port `3000`:
 ```bash
 npm test
 ```
-Executes all 12 test suites verifying every REST endpoint, query parameters, Cheerio HTML parsing, telemetry normalization, and HMAC bulk export.
+Executes all 15 automated test suites verifying every REST endpoint, direct `/meters` top-level routing, query filtering, Cheerio HTML parsing, telemetry normalization, and HMAC bulk export.
 
 ---
 
@@ -172,6 +172,9 @@ Executes all 12 test suites verifying every REST endpoint, query parameters, Che
 
 | Method | Endpoint | Description | Cache TTL |
 | :--- | :--- | :--- | :--- |
+| `GET` | `/meters` | **Direct URL routing**: Paginated smart meters listing (or browser SPA view) | 60s |
+| `GET` | `/meters/:id` | **Direct URL routing**: Detailed meter profile & coordinates | 300s |
+| `GET` | `/meters/:id/consumption` | **Direct URL routing**: 30-min interval consumption telemetry readings | 120s |
 | `POST` | `/api/v1/auth/login` | Explicit manual login or session verification | — |
 | `GET` | `/api/v1/meters` | Paginated search of smart meters (supports `q`, `page`, `status`, `phase`, `make`) | 60s |
 | `GET` | `/api/v1/meters/:id` | Full meter details (nameplate, geo coordinates, electrical hierarchy) | 300s |
@@ -324,6 +327,56 @@ Navigating to `http://localhost:3000` opens the built-in UI:
 2. **Distributed Redis Caching**: Shared cache across multi-container instances with cache stampede locks.
 3. **WebSockets / Telemetry Streaming**: Push new meter telemetry to the dashboard via SSE (Server-Sent Events) or WebSockets.
 4. **Automated Dockerization**: Multi-stage `Dockerfile` and `docker-compose.yml` for instant deployment.
+
+---
+
+## 📬 Next Steps for Submitting the Assignment
+
+Follow these steps to submit your work to the Flock Energy team:
+
+### Step 1: Create a Public GitHub Repository
+1. Go to [GitHub](https://github.com/new) and create a new repository (e.g., `flock-energy-api` or `urja-meter-ops`).
+2. Make sure the repository visibility is set to **Public**.
+
+### Step 2: Push Local Git Commits
+Link your local repository to GitHub and push:
+```bash
+git remote add origin https://github.com/<your-username>/<repo-name>.git
+git branch -M main
+git push -u origin main
+```
+
+### Step 3: Verify the Repository Checklist
+Before emailing, verify that your public repository contains:
+- [x] Complete source code in `app/` (`main.js`, `client.js`, `models.js`, `config.js`, `cache.js`).
+- [x] React single-page application in `client/` and pre-built bundle in `public/`.
+- [x] Comprehensive [PROTOCOL.md](./PROTOCOL.md) documenting reverse-engineered authentication, SvelteKit CSRF headers, and the HMAC bulk export mechanism.
+- [x] Complete [openapi.json](./openapi.json) valid OpenAPI 3.0.3 specification.
+- [x] Detailed [REFLECTION.md](./REFLECTION.md) answering all 5 core evaluation prompts.
+- [x] Setup and running instructions in this [README.md](./README.md).
+- [x] All 15 automated integration tests passing via `npm test`.
+
+### Step 4: Email the Submission Link
+Reply to the email you received this assignment from with your GitHub repository URL:
+```
+Subject: Re: Flock Energy — Engineering Take-Home Submission
+
+Hi Team,
+
+I have completed the Urja Meter Ops API service and React explorer dashboard.
+
+- Public GitHub Repository: https://github.com/<your-username>/<repo-name>
+- Key Documentation:
+  - Architecture & Setup: README.md
+  - Reverse-Engineering Protocol: PROTOCOL.md
+  - Engineering Reflections: REFLECTION.md
+  - OpenAPI Specification: openapi.json
+
+Looking forward to our follow-up technical conversation!
+
+Best regards,
+[Your Name]
+```
 
 ---
 

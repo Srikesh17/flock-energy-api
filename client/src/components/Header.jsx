@@ -15,7 +15,6 @@ export default function Header({ activeTab, setActiveTab }) {
           </div>
         </div>
 
-        {/* Tab buttons */}
         <nav className="flex space-x-1 sm:space-x-2">
           <button
             onClick={() => setActiveTab('meters')}
@@ -58,7 +57,6 @@ export default function Header({ activeTab, setActiveTab }) {
           </a>
         </nav>
 
-        {/* Portal Connectivity Status */}
         <div className="hidden md:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-slate-300">Urja Portal: <strong className="text-white">Connected</strong></span>

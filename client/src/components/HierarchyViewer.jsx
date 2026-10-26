@@ -11,7 +11,7 @@ export default function HierarchyViewer() {
     fetch('/api/v1/hierarchy')
       .then((r) => r.json())
       .then((data) => setHierarchy(data.hierarchy || {}))
-      .catch((err) => console.error('Failed to load hierarchy:', err))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 

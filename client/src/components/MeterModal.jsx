@@ -34,22 +34,21 @@ export default function MeterModal({ meterId, onClose }) {
     setLoading(true);
 
     Promise.all([
-      fetch(`/api/v1/meters/${meterId}`).then((r) => r.json()),
-      fetch(`/api/v1/meters/${meterId}/consumption`).then((r) => r.json()),
+      fetch(`/meters/${meterId}`).then((r) => r.json()),
+      fetch(`/meters/${meterId}/consumption`).then((r) => r.json()),
     ])
       .then(([det, cons]) => {
         setDetails(det);
         setConsumption(cons);
       })
-      .catch((err) => console.error('Error fetching meter modal data:', err))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, [meterId]);
 
   if (!meterId) return null;
 
-  // Chart data preparation
   const readings = consumption?.readings || [];
-  const windowReadings = readings.slice(-48); // Last 24 hours (48 intervals)
+  const windowReadings = readings.slice(-48);
   const labels = windowReadings.map((r) => r.timestamp.split(' ')[1] || r.timestamp);
   const kwhData = windowReadings.map((r) => r.kwh);
   const voltData = windowReadings.map((r) => r.voltagePhaseR);
@@ -134,7 +133,6 @@ export default function MeterModal({ meterId, onClose }) {
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-slate-200">
           
-          {/* Header */}
           <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
             <div className="flex items-center space-x-3">
               <span className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
@@ -150,7 +148,6 @@ export default function MeterModal({ meterId, onClose }) {
             </button>
           </div>
 
-          {/* Body */}
           <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
             {loading ? (
               <div className="py-20 text-center text-slate-500">
@@ -159,7 +156,6 @@ export default function MeterModal({ meterId, onClose }) {
               </div>
             ) : (
               <>
-                {/* Breadcrumbs */}
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     Electrical Hierarchy Trail
@@ -176,7 +172,6 @@ export default function MeterModal({ meterId, onClose }) {
                   </div>
                 </div>
 
-                {/* Specs and Location Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                     <h4 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3">
@@ -228,7 +223,6 @@ export default function MeterModal({ meterId, onClose }) {
                   </div>
                 </div>
 
-                {/* Telemetry Chart */}
                 <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                     <div>
@@ -245,7 +239,6 @@ export default function MeterModal({ meterId, onClose }) {
                     </div>
                   </div>
 
-                  {/* Ribbon stats */}
                   <div className="grid grid-cols-3 gap-3 my-3 text-center bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
                     <div>
                       <span className="text-slate-400 block">Total Readings</span>
@@ -261,7 +254,6 @@ export default function MeterModal({ meterId, onClose }) {
                     </div>
                   </div>
 
-                  {/* Chart Container */}
                   <div className="h-64 relative w-full">
                     {windowReadings.length > 0 ? (
                       <Line data={chartData} options={chartOptions} />
@@ -276,7 +268,6 @@ export default function MeterModal({ meterId, onClose }) {
             )}
           </div>
 
-          {/* Footer */}
           <div className="bg-slate-50 px-6 py-3 flex justify-between items-center border-t border-slate-200 text-xs">
             <span className="text-slate-500">Live data fetched & normalized from Urja Meter Ops</span>
             <button
