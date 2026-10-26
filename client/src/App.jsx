@@ -24,6 +24,11 @@ export default function App() {
   useEffect(() => {
     const path = window.location.pathname;
 
+    if (path === '/docs') {
+      window.location.replace(`${API_BASE}/docs`);
+      return;
+    }
+
     if (!isAuthenticated) {
       if (path !== '/login') {
         window.history.replaceState({}, '', '/login');
