@@ -1,9 +1,6 @@
-/* Custom styling enhancements for Urja Grid Explorer */
-.nav-tab.active {
-  background-color: rgb(30 41 59);
-  color: #fff;
-  border-bottom: 2px solid rgb(16 185 129);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .tree-node {
   position: relative;

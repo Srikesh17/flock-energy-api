@@ -1,7 +1,6 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const http = require('http');
-const createApp = require('../src/app');
+const createApp = require('../app/main');
 
 describe('Flock Energy — Urja Meter Ops API Test Suite', () => {
   let server;

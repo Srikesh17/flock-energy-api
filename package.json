@@ -1,17 +1,21 @@
 {
   "name": "flock-energy-api",
   "version": "1.0.0",
-  "description": "Clean, modern REST API proxy and explorer over legacy Urja Meter Ops portal",
-  "main": "src/server.js",
+  "description": "Clean, modern REST API proxy and React.js explorer over legacy Urja Meter Ops portal",
+  "main": "app/main.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "start": "node app/main.js",
+    "dev": "node --watch app/main.js",
+    "dev:client": "npm run dev --prefix client",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run build:client",
     "test": "node --test test/*.test.js"
   },
   "keywords": [
     "flock-energy",
     "smart-meter",
     "rest-api",
+    "react",
     "scraper",
     "urja-portal"
   ],

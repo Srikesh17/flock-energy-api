@@ -3,17 +3,12 @@ const cheerio = require('cheerio');
 const crypto = require('crypto');
 const { wrapper } = require('axios-cookiejar-support');
 const { CookieJar } = require('tough-cookie');
-
-/**
- * Parses legacy Indian date format 'DD/MM/YYYY HH:mm' into standard ISO 8601 string
- */
-function parseIndianDateToIso(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return null;
-  const match = dateStr.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
-  if (!match) return dateStr;
-  const [, day, month, year, hours, minutes] = match;
-  return new Date(Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), parseInt(hours, 10), parseInt(minutes, 10))).toISOString();
-}
+const {
+  formatMeterSummary,
+  formatMeterDetail,
+  formatConsumptionReading,
+  formatTransformer,
+} = require('./models');
 
 class UrjaPortalClient {
   constructor(config = {}) {
@@ -135,14 +130,7 @@ class UrjaPortalClient {
       total: data.total ?? (data.data ? data.data.length : 0),
       page: parseInt(page, 10),
       pageSize: data.data ? data.data.length : 0,
-      data: (data.data || []).map((meter) => ({
-        meterId: meter.meterId,
-        serialNumber: meter.serialNo,
-        make: meter.make,
-        phaseType: meter.phaseType,
-        installationStatus: meter.installStatus,
-        dtCode: meter.dtCode,
-      })),
+      data: (data.data || []).map(formatMeterSummary),
     };
   }
 
@@ -204,12 +192,12 @@ class UrjaPortalClient {
     if (geoRes.status === 'fulfilled' && geoRes.value.data?.data) {
       const geo = geoRes.value.data.data;
       coordinates = {
-        latitude: geo.latitude ? parseFloat(geo.latitude) : null,
-        longitude: geo.longitude ? parseFloat(geo.longitude) : null,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
       };
     }
 
-    return {
+    return formatMeterDetail({
       meterId: nameplate['Meter ID'] || meterId,
       serialNumber: nameplate['Serial No'] || 'N/A',
       make: nameplate['Make'] || 'N/A',
@@ -219,7 +207,7 @@ class UrjaPortalClient {
       hierarchy,
       hierarchyBreadcrumbs: hierarchyTokens,
       coordinates,
-    };
+    });
   }
 
   /**
@@ -231,13 +219,7 @@ class UrjaPortalClient {
     const response = await this.http.get(url);
     const rawReadings = response.data?.data || [];
 
-    const readings = rawReadings.map((r) => ({
-      timestamp: r.timestamp,
-      isoTimestamp: parseIndianDateToIso(r.timestamp),
-      kwh: r.kwh != null && r.kwh !== '' ? parseFloat(r.kwh) : null,
-      kvah: r.kvah != null && r.kvah !== '' ? parseFloat(r.kvah) : null,
-      voltagePhaseR: r.voltR != null && r.voltR !== '' ? parseFloat(r.voltR) : null,
-    }));
+    const readings = rawReadings.map(formatConsumptionReading);
 
     return {
       meterId,
@@ -258,12 +240,7 @@ class UrjaPortalClient {
     return {
       total: data.total || 0,
       page: parseInt(page, 10),
-      data: (data.data || []).map((dt) => ({
-        code: dt.code,
-        name: dt.name,
-        feederCode: dt.feederCode,
-        capacityKva: dt.capacityKva != null ? parseFloat(dt.capacityKva) : null,
-      })),
+      data: (data.data || []).map(formatTransformer),
     };
   }
 

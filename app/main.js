@@ -1,10 +1,50 @@
 const express = require('express');
-const router = express.Router();
+const cors = require('cors');
+const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const config = require('./config');
+const UrjaPortalClient = require('./client');
+const MemoryCache = require('./cache');
 
-module.exports = function createApiRouter(client, cache) {
-  /**
-   * Helper: cache wrapper for async handlers
-   */
+function createApp(customClient = null, customCache = null) {
+  const app = express();
+  const client = customClient || new UrjaPortalClient(config.urja);
+  const cache = customCache || new MemoryCache(config.cache.ttlSeconds);
+
+  // Load OpenAPI specification
+  const openapiSpec = require(path.join(__dirname, '../openapi.json'));
+
+  // Middleware
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Serve static assets for modern React web dashboard
+  app.use(express.static(path.join(__dirname, '../public')));
+
+  // Raw OpenAPI specification
+  app.get('/openapi.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openapiSpec);
+  });
+
+  // Interactive Swagger UI documentation
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Flock Energy — Urja Meter Ops API Docs',
+  }));
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      service: 'flock-energy-api',
+      timestamp: new Date().toISOString(),
+      cacheSize: cache.size(),
+    });
+  });
+
+  // Helper: Cache wrapper
   async function withCache(cacheKey, ttlSeconds, fetcher) {
     if (cache) {
       const cached = cache.get(cacheKey);
@@ -17,11 +57,13 @@ module.exports = function createApiRouter(client, cache) {
     return { data: fresh, cached: false };
   }
 
-  /**
-   * POST /api/v1/auth/login
-   * Manual authentication check or login with custom credentials
-   */
-  router.post('/auth/login', async (req, res, next) => {
+  // ==========================================
+  // REST API Routes (/api/v1)
+  // ==========================================
+  const apiRouter = express.Router();
+
+  // POST /api/v1/auth/login
+  apiRouter.post('/auth/login', async (req, res, next) => {
     try {
       const { username, password } = req.body || {};
       const result = await client.login(username, password);
@@ -36,11 +78,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/meters
-   * List/search smart meters with pagination and optional filtering
-   */
-  router.get('/meters', async (req, res, next) => {
+  // GET /api/v1/meters
+  apiRouter.get('/meters', async (req, res, next) => {
     try {
       const q = req.query.q || '';
       const page = parseInt(req.query.page || '1', 10);
@@ -75,11 +114,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/meters/:id
-   * Get specific meter details, nameplate specs, geo coordinates, and hierarchy
-   */
-  router.get('/meters/:id', async (req, res, next) => {
+  // GET /api/v1/meters/:id
+  apiRouter.get('/meters/:id', async (req, res, next) => {
     try {
       const meterId = req.params.id;
       const cacheKey = `meter:${meterId}`;
@@ -99,11 +135,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/meters/:id/consumption
-   * Get timeseries energy consumption readings for a meter
-   */
-  router.get('/meters/:id/consumption', async (req, res, next) => {
+  // GET /api/v1/meters/:id/consumption
+  apiRouter.get('/meters/:id/consumption', async (req, res, next) => {
     try {
       const meterId = req.params.id;
       const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
@@ -133,11 +166,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/transformers
-   * Retrieve list of distribution transformers
-   */
-  router.get('/transformers', async (req, res, next) => {
+  // GET /api/v1/transformers
+  apiRouter.get('/transformers', async (req, res, next) => {
     try {
       const page = parseInt(req.query.page || '1', 10);
       const cacheKey = `dts:p=${page}`;
@@ -151,11 +181,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/hierarchy
-   * Retrieve the complete organized network hierarchy tree
-   */
-  router.get('/hierarchy', async (req, res, next) => {
+  // GET /api/v1/hierarchy
+  apiRouter.get('/hierarchy', async (req, res, next) => {
     try {
       const cacheKey = 'hierarchy:full';
       const { data, cached } = await withCache(cacheKey, 600, () => client.getHierarchy());
@@ -167,11 +194,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/export
-   * Retrieve the complete dataset of all smart meters with metadata
-   */
-  router.get('/export', async (req, res, next) => {
+  // GET /api/v1/export
+  apiRouter.get('/export', async (req, res, next) => {
     try {
       const cacheKey = 'export:all';
       const { data, cached } = await withCache(cacheKey, 600, () => client.exportAllMeters());
@@ -183,11 +207,8 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  /**
-   * GET /api/v1/stats
-   * Aggregated metrics for dashboard view
-   */
-  router.get('/stats', async (req, res, next) => {
+  // GET /api/v1/stats
+  apiRouter.get('/stats', async (req, res, next) => {
     try {
       const cacheKey = 'stats:summary';
       const { data, cached } = await withCache(cacheKey, 600, async () => {
@@ -223,5 +244,56 @@ module.exports = function createApiRouter(client, cache) {
     }
   });
 
-  return router;
-};
+  app.use('/api/v1', apiRouter);
+
+  // 404 handler for API routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `Endpoint ${req.originalUrl} does not exist`,
+    });
+  });
+
+  // SPA fallback for HTML5 routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+
+  // Global error handler
+  app.use((err, req, res, next) => {
+    console.error('API Error:', err.message);
+    const status = err.status || 500;
+    res.status(status).json({
+      error: err.name || 'InternalServerError',
+      message: err.message || 'An unexpected error occurred while processing your request',
+    });
+  });
+
+  return { app, client, cache };
+}
+
+// Start standalone server if run directly
+if (require.main === module) {
+  const { app } = createApp();
+  const server = app.listen(config.port, () => {
+    console.log('====================================================');
+    console.log(`🚀 Urja Meter Ops API Service running on port ${config.port}`);
+    console.log(`📊 React Web Dashboard:    http://localhost:${config.port}/`);
+    console.log(`📖 Interactive API Docs:   http://localhost:${config.port}/docs`);
+    console.log(`📄 Raw OpenAPI Spec:       http://localhost:${config.port}/openapi.json`);
+    console.log(`⚡ Connected to portal:     ${config.urja.baseUrl}`);
+    console.log('====================================================');
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => console.log('HTTP server closed'));
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => console.log('HTTP server closed'));
+  });
+}
+
+module.exports = createApp;

@@ -1,11 +1,12 @@
 # Flock Energy — Urja Meter Ops API Service & Explorer
 
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539?logo=openapi-initiative&logoColor=white)](./openapi.json)
 [![Tests](https://img.shields.io/badge/Tests-12%20Passed-emerald)](./test/api.test.js)
 
-> A clean, production-grade REST API service, client adapter layer, and interactive web dashboard built over the legacy **Urja Meter Ops** portal (`https://urja-ops.flockenergy.tech`).
+> A clean, production-grade REST API service, client adapter layer, and interactive **React.js** web dashboard built over the legacy **Urja Meter Ops** portal (`https://urja-ops.flockenergy.tech`).
 
 ---
 
@@ -76,7 +77,8 @@ flowchart TD
 - **`src/client.js` (`UrjaPortalClient`)**: Encapsulates `axios` and `tough-cookie`. Injects required CSRF headers (`Origin`, `Referer`), handles SvelteKit session token lifecycles, parses HTML using `cheerio`, calculates HMAC-SHA256 signatures using Node's `crypto`, and re-authenticates on expired tokens.
 - **`src/cache.js` (`MemoryCache`)**: In-memory TTL caching layer to protect the legacy portal from excess traffic and provide sub-millisecond response times.
 - **`src/routes/api.js`**: RESTful route handlers for authentication, meters, consumption telemetry, distribution transformers, hierarchy trees, and bulk export.
-- **`public/`**: Modern, responsive single-page application built with Tailwind CSS, FontAwesome, and Chart.js.
+- **`client/`**: Modern React.js (v18) frontend built with Vite, Tailwind CSS, Lucide icons, and Chart.js.
+- **`public/`**: Compiled production assets served directly by Express at `/`.
 
 ---
 
@@ -100,10 +102,21 @@ flock-energy-api/
 │   ├── config.js        # Centralized configuration & environment loader
 │   └── routes/
 │       └── api.js       # REST API v1 endpoints
-├── public/              # Modern Web Dashboard
-│   ├── index.html       # Single-page explorer UI
-│   ├── app.js           # Client-side reactivity, chart rendering & hierarchy tree
-│   └── styles.css       # Tree styling & layout adjustments
+├── client/              # Modern React.js Single-Page Application
+│   ├── package.json     # Client dependencies (React, Vite, Tailwind, Chart.js)
+│   ├── vite.config.js   # Vite configuration with proxy and public outDir
+│   └── src/
+│       ├── App.jsx      # Root state, tab switching & modal management
+│       ├── components/
+│       │   ├── Header.jsx           # Navigation & connection indicator
+│       │   ├── KpiCards.jsx         # Metric summary KPI cards
+│       │   ├── MetersExplorer.jsx   # Live search, filters & table
+│       │   ├── MeterModal.jsx       # Modal drawer with dual-axis telemetry chart
+│       │   ├── HierarchyViewer.jsx  # Collapsible electrical network tree
+│       │   └── TransformersGrid.jsx # Distribution transformer asset cards
+│       ├── index.css    # Tailwind CSS directives
+│       └── main.jsx     # React DOM entry point
+├── public/              # Production static assets served by Express
 └── test/
     └── api.test.js      # Automated test suite (12 tests covering all endpoints)
 ```
