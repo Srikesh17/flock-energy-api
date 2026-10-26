@@ -5,8 +5,17 @@ import MetersExplorer from './components/MetersExplorer';
 import MeterModal from './components/MeterModal';
 import HierarchyViewer from './components/HierarchyViewer';
 import TransformersGrid from './components/TransformersGrid';
+import LoginPage from './components/LoginPage';
+import { API_BASE } from './config/api';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('urja_auth');
+  });
+  const [user, setUser] = useState(() => {
+    return localStorage.getItem('urja_user') || 'operator@urja.local';
+  });
+
   const [activeTab, setActiveTab] = useState('meters');
   const [selectedMeterId, setSelectedMeterId] = useState(null);
   const [stats, setStats] = useState(null);
@@ -14,7 +23,18 @@ export default function App() {
 
   useEffect(() => {
     const path = window.location.pathname;
-    if (path.startsWith('/meters/')) {
+
+    if (!isAuthenticated) {
+      if (path !== '/login') {
+        window.history.replaceState({}, '', '/login');
+      }
+      return;
+    }
+
+    if (path === '/login') {
+      window.history.replaceState({}, '', '/meters');
+      setActiveTab('meters');
+    } else if (path.startsWith('/meters/')) {
       const id = path.replace('/meters/', '').trim();
       if (id) {
         setSelectedMeterId(id);
@@ -30,6 +50,7 @@ export default function App() {
 
     const onPopState = () => {
       const p = window.location.pathname;
+      if (!isAuthenticated) return;
       if (p.startsWith('/meters/')) {
         setSelectedMeterId(p.replace('/meters/', '').trim());
         setActiveTab('meters');
@@ -50,15 +71,34 @@ export default function App() {
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    fetch('/api/v1/stats')
+    if (!isAuthenticated) return;
+    setStatsLoading(true);
+    fetch(`${API_BASE}/api/v1/stats`)
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch((err) => console.error(err))
       .finally(() => setStatsLoading(false));
-  }, []);
+  }, [isAuthenticated]);
+
+  const handleLoginSuccess = (loginData) => {
+    const loggedUser = loginData?.user || 'operator@urja.local';
+    localStorage.setItem('urja_auth', 'true');
+    localStorage.setItem('urja_user', loggedUser);
+    setUser(loggedUser);
+    setIsAuthenticated(true);
+    window.history.pushState({}, '', '/meters');
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('urja_auth');
+    localStorage.removeItem('urja_user');
+    setIsAuthenticated(false);
+    setSelectedMeterId(null);
+    window.history.pushState({}, '', '/login');
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -76,9 +116,18 @@ export default function App() {
     window.history.pushState({}, '', '/meters');
   };
 
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
-      <Header activeTab={activeTab} setActiveTab={handleTabChange} />
+      <Header
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        user={user}
+        onSignOut={handleSignOut}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
         <KpiCards stats={stats} loading={statsLoading} />
@@ -107,15 +156,15 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© 2026 Flock Energy — Urja Meter Ops API & React Dashboard</p>
           <div className="flex space-x-4">
-            <a href="/docs" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
+            <a href={`${API_BASE}/docs`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
               Interactive API Docs
             </a>
             <span>•</span>
-            <a href="/openapi.json" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
+            <a href={`${API_BASE}/openapi.json`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
               OpenAPI 3.0 Spec
             </a>
             <span>•</span>
-            <a href="/health" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
+            <a href={`${API_BASE}/health`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-900 font-medium">
               Service Health
             </a>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Map, ChevronDown, ChevronRight, Layers, Building, Radio, Zap, Loader2, ArrowUpDown } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 export default function HierarchyViewer() {
   const [hierarchy, setHierarchy] = useState(null);
@@ -8,7 +9,7 @@ export default function HierarchyViewer() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/v1/hierarchy')
+    fetch(`${API_BASE}/api/v1/hierarchy`)
       .then((r) => r.json())
       .then((data) => setHierarchy(data.hierarchy || {}))
       .catch((err) => console.error(err))

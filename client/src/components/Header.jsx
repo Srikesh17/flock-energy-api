@@ -1,7 +1,7 @@
 import React from 'react';
-import { Zap, Gauge, Network, BookOpen, ExternalLink, Activity } from 'lucide-react';
+import { Zap, Gauge, Network, BookOpen, ExternalLink, Activity, LogOut, User } from 'lucide-react';
 
-export default function Header({ activeTab, setActiveTab }) {
+export default function Header({ activeTab, setActiveTab, user, onSignOut }) {
   return (
     <header className="bg-slate-900 text-white shadow-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
@@ -57,9 +57,20 @@ export default function Header({ activeTab, setActiveTab }) {
           </a>
         </nav>
 
-        <div className="hidden md:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-slate-300">Urja Portal: <strong className="text-white">Connected</strong></span>
+        <div className="flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-1.5 text-xs text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+            <User className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{user || 'operator@urja.local'}</span>
+          </div>
+
+          <button
+            onClick={onSignOut}
+            title="Sign out"
+            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </div>
     </header>

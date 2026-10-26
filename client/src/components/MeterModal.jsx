@@ -12,6 +12,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { API_BASE } from '../config/api';
 
 ChartJS.register(
   CategoryScale,
@@ -34,8 +35,8 @@ export default function MeterModal({ meterId, onClose }) {
     setLoading(true);
 
     Promise.all([
-      fetch(`/meters/${meterId}`).then((r) => r.json()),
-      fetch(`/meters/${meterId}/consumption`).then((r) => r.json()),
+      fetch(`${API_BASE}/meters/${meterId}`).then((r) => r.json()),
+      fetch(`${API_BASE}/meters/${meterId}/consumption`).then((r) => r.json()),
     ])
       .then(([det, cons]) => {
         setDetails(det);

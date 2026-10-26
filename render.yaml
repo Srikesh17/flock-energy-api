@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: flock-energy-api
+    env: node
+    buildCommand: npm install
+    startCommand: node app/main.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: URJA_BASE_URL
+        value: https://urja-ops.flockenergy.tech
+      - key: URJA_USERNAME
+        value: operator@urja.local
+      - key: URJA_PASSWORD
+        value: urja-ops-2026
+      - key: CACHE_TTL_SECONDS
+        value: 300
+      - key: ALLOWED_ORIGIN
+        sync: false

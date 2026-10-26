@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, ChevronLeft, ChevronRight, ArrowRight, Loader2, Inbox } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 export default function MetersExplorer({ onSelectMeter }) {
   const [meters, setMeters] = useState([]);
@@ -27,7 +28,7 @@ export default function MetersExplorer({ onSelectMeter }) {
         status: s,
         phase: ph,
       });
-      const res = await fetch(`/meters?${params.toString()}`);
+      const res = await fetch(`${API_BASE}/meters?${params.toString()}`);
       const data = await res.json();
       setMeters(data.data || []);
       setTotal(data.total || 0);
@@ -41,7 +42,7 @@ export default function MetersExplorer({ onSelectMeter }) {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const res = await fetch('/api/v1/export');
+      const res = await fetch(`${API_BASE}/api/v1/export`);
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
