@@ -3,8 +3,8 @@ import { Zap, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 import { API_BASE } from '../config/api';
 
 export default function LoginPage({ onLoginSuccess }) {
-  const [email, setEmail] = useState('operator@urja.local');
-  const [password, setPassword] = useState('urja-ops-2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Zap, Gauge, Network, BookOpen, ExternalLink, Activity, LogOut, User } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 export default function Header({ activeTab, setActiveTab, user, onSignOut }) {
   return (
@@ -47,7 +48,7 @@ export default function Header({ activeTab, setActiveTab, user, onSignOut }) {
             <Activity className="h-4 w-4" /> Transformers
           </button>
           <a
-            href="/docs"
+            href={`${API_BASE}/docs`}
             target="_blank"
             rel="noreferrer"
             className="px-3 py-2 rounded-md text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors flex items-center gap-1"
